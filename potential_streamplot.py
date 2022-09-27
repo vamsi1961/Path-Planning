@@ -54,8 +54,8 @@ delx , dely = add_goal(X,Y,s,r,goal)
 
 def add_obstacle(X,Y,delx,dely,goal):
   obstacle = [25,25] 
-  s=7
-  r = 3
+  s=5
+  r = 1
   for i in range(len(X)):
     for j in range(len(Y)):
       
@@ -63,8 +63,8 @@ def add_obstacle(X,Y,delx,dely,goal):
       d_obstacle = np.sqrt((obstacle[0] - X[i][j])**2 + (obstacle[1] - Y[i][j])**2)
       #print(f"{i} and {j}")
       theta_goal  = np.arctan2((Y[i][j] - goal[1]),(X[i][j] - goal[0]))
-      theta_obstacle = -np.arctan2((Y[i][j] - obstacle[1]),(X[i][j] - obstacle[0]))
-
+      theta_obstacle = -3.14 +np.arctan2((Y[i][j] - obstacle[1]),(X[i][j] - obstacle[0]))
+      print(theta_obstacle)
       # using the Formula of avoiding obstacle
       if d_obstacle < r:
         delx[i][j] = -1*np.sign(np.cos(theta_obstacle))*5 +0
@@ -88,7 +88,7 @@ def add_obstacle(X,Y,delx,dely,goal):
         if delx[i][j] != 0:
           delx[i][j] += 50* s *np.cos(theta_goal)
           dely[i][j] += 50* s *np.sin(theta_goal)
-          print(dely[i][j])
+  
         else:
           
           delx[i][j] = 50* s *np.cos(theta_goal)
