@@ -1,10 +1,3 @@
-"""
-
-Grid based Dijkstra planning
-
-author: Atsushi Sakai(@Atsushi_twi)
-
-"""
 
 import matplotlib.pyplot as plt
 import math
@@ -251,38 +244,54 @@ def main():
     print( __file__ + "start!!" )
 
     # start and goal position
-
-    sx = -5.0   #[m]
-    sy = -5.0   #[m]
-    gx = 50.0   #[m]
+    sx = 10.0   #[m]
+    sy = 50.0   #[m]
+    gx = 95.0   #[m]
     gy = 50.0   #[m]
-
     grid_size = 2.0
     robot_radius = 1.0
-
     # set obstacle positions
-
     ox,oy =[],[]
 
-    for i in range(-10,60):
+    for i in range(0,101): 
         ox.append(i)
-        oy.append(-10.0)
+        oy.append(0.0)
 
-    for i in range(-10,60):
-        ox.append(60.0)
+    for i in range(40,60): 
+        ox.append(20)
         oy.append(i)
     
-    for i in range(-10,61):
-        ox.append(-10.0)
+    for i in range(0,40): 
+        ox.append(30)
+        oy.append(i)
+
+    for i in range(0,101): 
+        ox.append(i)
+        oy.append(100.0)
+
+    for i in range(0,101):
+        ox.append(100.0)
         oy.append(i)
     
-    for i in range(-10,40):
-        ox.append(20.0)
+    for i in range(0,101):
+        ox.append(0.0)
+        oy.append(i)
+    
+    for i in range(0,40):
+        ox.append(40.0)
+        oy.append(100-i)
+
+    for i in range(0,40):
+        ox.append(55.0)
+        oy.append(70-i)
+
+    for i in range(0,40):
+        ox.append(75.0)
         oy.append(i)
 
     for i in range(0,40):
-        ox.append(40.0)
-        oy.append(60.0 - i)
+        ox.append(85.0)
+        oy.append(100 -i)
 
     if show_animation:
         plt.plot(ox,oy, ".k")
