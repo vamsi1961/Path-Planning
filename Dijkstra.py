@@ -31,18 +31,24 @@ class Dijkstra:
         self.x_width = None
         self.y_width = None
         self.obstacle_map = None
+        # Initially setup requirements according to grid which we plot in matplolib 
 
+        # as we convert meters to pixels we use gridsize as resolution
         self.resolution = resolution
+        #  as our robot moves it has to understand wether it hits obstacle so we have to check wethere obstacle or goal is in radius
         self.robot_radius = robot_radius
+        # we create obstacles in the map 
         self.calc_obstacle_map(ox, oy)
+        # we choose motion where to move 
         self.motion = self.get_motion_model()
 
 
     class Node:
         def __init__(self, x, y, cost, parent_index):
+            # define each point as node
             self.x = x  # index of grid
             self.y = y  # index of grid
-            self.cost = cost
+            self.cost = cost # based on cost we find shortest path 
             self.parent_index = parent_index  # index of previous Node
 
         def __str__(self):
@@ -51,18 +57,25 @@ class Dijkstra:
 
     def planning(self,sx,sy,gx,gy):
         
+        # we create obstacles in the map 
+        start_node = self.Node(self.calc_xy_index(sx, self.min_x),self.calc_xy_index(sy, self.min_y), 0.0, -1)
+        goal_node = self.Node(self.calc_xy_index(gx, self.min_x),self.calc_xy_index(gy, self.min_y), 0.0, -1)
 
-        start_node = self.Node(self.calc_xy_index(sx, self.min_x),
-                               self.calc_xy_index(sy, self.min_y), 0.0, -1)
-        goal_node = self.Node(self.calc_xy_index(gx, self.min_x),
-                              self.calc_xy_index(gy, self.min_y), 0.0, -1)
-
+        # open set to log all nodes which are yet to explore.
+        # closed  set to log all nodes which are explored.
         open_set, closed_set = dict(), dict()
+        # calc_index function distinguishes each node it returns different value for each location of node 
+        #  it can be any function but make sure it distinguishes each node  
         open_set[self.calc_index(start_node)] = start_node
-        print(str(start_node) + "rgfrt")
+        # start_node is added to the open_set
+        print(str(start_node))
 
         while True:
+            # we have to check which node is near in terms of cost
             c_id = min(open_set, key=lambda o: open_set[o].cost)
+            # we compare costs and then find minimum and then delete which is closest.
+            # for each node cost will get updated either it is in open_set or not
+            # c_id is current node which we will explore next 
             current = open_set[c_id]
 
             #  show_graph
@@ -75,50 +88,74 @@ class Dijkstra:
                 if len(closed_set.keys()) % 10 ==  0:
                     plt.pause(0.001)
 
+            #  if the current node is goal node then stop you found the goal
+            # As cost is accumulated final cost = cost  
+
             if current.x == goal_node.x and current.y == goal_node.y:
                 print("Find Goal")
                 goal_node.parent_index = current.parent_index
                 goal_node.cost = current.cost
                 break
 
-            
+            # when we explored the current node and we are moving further we delete that node from open_set and we add it in closed_set node   
             del open_set[c_id]
 
+            # when we found the closest node we add it in closed_set 
             closed_set[c_id] = current
 
-            for move_x,move_y,move_cost in self.motion:
-                node = self.Node(current.x + move_x , current.y + move_y, current.cost + move_cost ,c_id )
 
+            # we have to explore all moves  
+            for move_x,move_y,move_cost in self.motion:
+                # there are 8 moves in which x,y,cost are available
+                # we will find current node after moving and new x,y,cost and parent node are passed
+                node = self.Node(current.x + move_x , current.y + move_y, current.cost + move_cost ,c_id )
+                
+                # find index of the node
                 n_id = self.calc_index(node)
 
+                # if it is already in closed_set then continue to start 
+                # because it will be in loop if you again assume it as closest point
                 if n_id in closed_set:
                     continue
-
+                
+                # verify if it is a node or not
                 if not self.verify_node(node):
                     continue
-
+                
+                # if new node is not in open_set then add it  
                 if n_id not in open_set:
                     open_set[n_id] = node
-
+                # if it is in open_set then compare and replace if the node is of less cost, 
+                # if it is more cost then we can use previous xost and parent nodes as x,y is same 
+                #  i.e we are replacing the cost and parent node 
                 else:
                     if open_set[n_id].cost >= node.cost:
                         open_set[n_id] = node 
 
+        # after exploring we calculate final path
         rx,ry = self.calc_final_path(goal_node,closed_set)
+
         # returns distance 
 
         return rx,ry 
 
+    # to convert index to position  
     def calc_position(self,index,minp):
         pos = index*self.resolution + minp
         return pos
 
-
+    
+    # after exploring we got goal_node and closed_set points now find final path  
     def calc_final_path(self,goal_node,closed_set):
         
+        # we will travel back wards first we will find position of goal
         rx,ry = [self.calc_position(goal_node.x ,self.min_x)], [self.calc_position(goal_node.y,self.min_y)]
+        
+        # find it's parent node 
         parent_index = goal_node.parent_index
         while parent_index != -1:
+
+            # go backwards and append rx,ry
             n = closed_set[parent_index]
             rx.append(self.calc_position(n.x,self.min_x))
             ry.append(self.calc_position(n.y,self.min_y))
@@ -126,13 +163,17 @@ class Dijkstra:
 
         return rx,ry
 
+    # this gives a unique value for wach node and stores node in corresponding node
     def calc_index(self, node):
         return (node.y - self.min_y) * self.x_width + (node.x - self.min_x)
+
     
+    # convert distance to grid
     def calc_xy_index(self,position,minp):
-        return round((position - minp)/self.resolution)
+        return round ((position - minp)/self.resolution)
 
-
+    
+    # verify node wether it is in given conditions or not
     def verify_node(self,node):
 
         px = self.calc_position(node.x,self.min_x)
@@ -155,6 +196,7 @@ class Dijkstra:
 
         return True
 
+    
 
     def calc_obstacle_map(self,ox,oy):
         
@@ -167,17 +209,24 @@ class Dijkstra:
         print("max_x:", self.max_x)
         print("max_y:", self.max_y)
 
+        # find x,y widths 
+
         self.x_width = round((self.max_x - self.min_x) / self.resolution)
         self.y_width = round((self.max_y - self.min_y) / self.resolution)
 
+        # initially all points in grid are False 
         self.obstacle_map = [[False for _ in range(self.y_width)] for _ in range(self.x_width)]
 
+        # we finally 
         for ix in range(self.x_width):
             x = self.calc_position(ix,self.min_x)
             for iy in range(self.y_width):
                 y = self.calc_position(iy,self.min_y)
+                #The zip function is used to iterate over the elements of ox and oy at the same time, 
+                #so that the x and y coordinates of each obstacle can be used in the collision check.
                 for iox,ioy in zip(ox,oy):
                     d = math.hypot(iox-x,ioy -y)
+                    # checks whether robot collides or not     
                     if d <= self.robot_radius:
                         self.obstacle_map[ix][iy] = True
                         break
@@ -197,16 +246,16 @@ class Dijkstra:
 
         return motion
 
-    
+
 def main():
     print( __file__ + "start!!" )
 
     # start and goal position
 
-    sx = -5.0
-    sy = -5.0
-    gx = 50.0
-    gy = 50.0
+    sx = -5.0   #[m]
+    sy = -5.0   #[m]
+    gx = 50.0   #[m]
+    gy = 50.0   #[m]
 
     grid_size = 2.0
     robot_radius = 1.0
