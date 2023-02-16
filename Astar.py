@@ -2,12 +2,9 @@ import matplotlib.pyplot as plt
 import math
 
 show_animation = True
-
-
 class AStarPlanner:
 
     def __init__(self, ox, oy, resolution, robot_radius):
-
 
         self.x_min = 0
         self.y_min = 0
@@ -22,7 +19,6 @@ class AStarPlanner:
         self.calc_obstacle_map(ox, oy)
         self.motion = self.get_motion_model()
 
-
     class Node:
         def __init__(self, x, y, cost, parent_index):
             self.x = x  # index of grid
@@ -36,7 +32,6 @@ class AStarPlanner:
 
     def planning(self,sx,sy,gx,gy):
         
-
         start_node = self.Node(self.calc_xy_index(sx, self.x_min),self.calc_xy_index(sy, self.y_min), 0.0, -1)
         goal_node = self.Node(self.calc_xy_index(gx, self.x_min),self.calc_xy_index(gy, self.y_min), 0.0, -1)
 
@@ -56,7 +51,7 @@ class AStarPlanner:
 
             if show_animation:
                 plt.plot(self.calc_position(current.x,self.x_min),self.calc_position(current.y,self.y_min),"xc")
-
+                
                 plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
 
                 if len(closed_set.keys()) % 10 ==  0:
@@ -68,7 +63,6 @@ class AStarPlanner:
                 goal_node.cost = current.cost
                 break
 
-            
             del open_set[curr_id]
 
             closed_set[curr_id] = current
@@ -265,18 +259,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
