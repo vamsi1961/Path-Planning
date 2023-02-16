@@ -1,11 +1,3 @@
-"""
-
-Grid based Dijkstra planning
-
-author: Atsushi Sakai(@Atsushi_twi)
-
-"""
-
 import matplotlib.pyplot as plt
 import math
 
@@ -15,19 +7,12 @@ show_animation = True
 class AStarPlanner:
 
     def __init__(self, ox, oy, resolution, robot_radius):
-        """
-        Initialize map for a star planning
 
-        ox: x position list of Obstacles [m]
-        oy: y position list of Obstacles [m]
-        resolution: grid resolution [m]
-        rr: robot radius[m]
-        """
 
-        self.min_x = 0
-        self.min_y = 0
-        self.max_x = 0
-        self.max_y = 0
+        self.x_min = 0
+        self.y_min = 0
+        self.x_max = 0
+        self.y_max = 0
         self.x_width = 0
         self.y_width = 0
         self.obstacle_map = 0
@@ -52,10 +37,8 @@ class AStarPlanner:
     def planning(self,sx,sy,gx,gy):
         
 
-        start_node = self.Node(self.calc_xy_index(sx, self.min_x),
-                               self.calc_xy_index(sy, self.min_y), 0.0, -1)
-        goal_node = self.Node(self.calc_xy_index(gx, self.min_x),
-                              self.calc_xy_index(gy, self.min_y), 0.0, -1)
+        start_node = self.Node(self.calc_xy_index(sx, self.x_min),self.calc_xy_index(sy, self.y_min), 0.0, -1)
+        goal_node = self.Node(self.calc_xy_index(gx, self.x_min),self.calc_xy_index(gy, self.y_min), 0.0, -1)
 
         open_set, closed_set = dict(), dict()
         open_set[self.calc_index(start_node)] = start_node
@@ -66,18 +49,18 @@ class AStarPlanner:
                 print("Open set is empty..")
                 break
 
-            c_id = min(open_set, key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,open_set[o]))
-            current = open_set[c_id]
+            curr_id = min(open_set, key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,open_set[o]))
+            current = open_set[curr_id]
 
             #  show_graph
 
             if show_animation:
-                plt.plot(self.calc_position(current.x,self.min_x),self.calc_position(current.y,self.min_y),"xc")
+                plt.plot(self.calc_position(current.x,self.x_min),self.calc_position(current.y,self.y_min),"xc")
 
                 plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
 
                 if len(closed_set.keys()) % 10 ==  0:
-                    plt.pause(0.001)
+                    plt.pause(0.01)
 
             if current.x == goal_node.x and current.y == goal_node.y:
                 print("Find Goal")
@@ -86,14 +69,14 @@ class AStarPlanner:
                 break
 
             
-            del open_set[c_id]
+            del open_set[curr_id]
 
-            closed_set[c_id] = current
+            closed_set[curr_id] = current
 
             for i, _ in enumerate(self.motion):
                 node = self.Node(current.x + self.motion[i][0],
                                  current.y + self.motion[i][1],
-                                 current.cost + self.motion[i][2], c_id)
+                                 current.cost + self.motion[i][2], curr_id)
 
                 n_id = self.calc_index(node)
 
@@ -122,18 +105,18 @@ class AStarPlanner:
 
     def calc_final_path(self,goal_node,closed_set):
         
-        rx,ry = [self.calc_position(goal_node.x ,self.min_x)], [self.calc_position(goal_node.y,self.min_y)]
+        rx,ry = [self.calc_position(goal_node.x ,self.x_min)], [self.calc_position(goal_node.y,self.y_min)]
         parent_index = goal_node.parent_index
         while parent_index != -1:
             n = closed_set[parent_index]
-            rx.append(self.calc_position(n.x,self.min_x))
-            ry.append(self.calc_position(n.y,self.min_y))
+            rx.append(self.calc_position(n.x,self.x_min))
+            ry.append(self.calc_position(n.y,self.y_min))
             parent_index = n.parent_index
 
         return rx,ry
 
     def calc_index(self, node):
-        return (node.y - self.min_y) * self.x_width + (node.x - self.min_x)
+        return (node.y - self.y_min) * self.x_width + (node.x - self.x_min)
     
     def calc_xy_index(self,position,minp):
         return round((position - minp)/self.resolution)
@@ -148,19 +131,19 @@ class AStarPlanner:
 
     def verify_node(self,node):
 
-        px = self.calc_position(node.x,self.min_x)
-        py = self.calc_position(node.y,self.min_y)
+        px = self.calc_position(node.x,self.x_min)
+        py = self.calc_position(node.y,self.y_min)
 
-        if px < self.min_x:
+        if px < self.x_min:
             return False
 
-        if py < self.min_y:
+        if py < self.y_min:
             return False
 
-        if px >= self.max_x:
+        if px >= self.x_max:
             return False
 
-        if py >= self.max_y:
+        if py >= self.y_max:
             return False
 
         if self.obstacle_map[node.x][node.y]:
@@ -171,24 +154,24 @@ class AStarPlanner:
 
     def calc_obstacle_map(self,ox,oy):
         
-        self.min_x = round(min(ox))
-        self.max_x = round(max(ox))
-        self.min_y = round(min(oy))
-        self.max_y = round(max(oy))
-        print("min_x:", self.min_x)
-        print("min_y:", self.min_y)
-        print("max_x:", self.max_x)
-        print("max_y:", self.max_y)
+        self.x_min = round(min(ox))
+        self.x_max = round(max(ox))
+        self.y_min = round(min(oy))
+        self.y_max = round(max(oy))
+        print("x_min:", self.x_min)
+        print("y_min:", self.y_min)
+        print("x_max:", self.x_max)
+        print("y_max:", self.y_max)
 
-        self.x_width = round((self.max_x - self.min_x) / self.resolution)
-        self.y_width = round((self.max_y - self.min_y) / self.resolution)
+        self.x_width = round((self.x_max - self.x_min) / self.resolution)
+        self.y_width = round((self.y_max - self.y_min) / self.resolution)
 
         self.obstacle_map = [[False for _ in range(self.y_width)] for _ in range(self.x_width)]
 
         for ix in range(self.x_width):
-            x = self.calc_position(ix,self.min_x)
+            x = self.calc_position(ix,self.x_min)
             for iy in range(self.y_width):
-                y = self.calc_position(iy,self.min_y)
+                y = self.calc_position(iy,self.y_min)
                 for iox,ioy in zip(ox,oy):
                     d = math.hypot(iox-x,ioy -y)
                     if d <= self.robot_radius:
@@ -212,39 +195,60 @@ class AStarPlanner:
 
     
 def main():
-    print(__file__ + " start!!")
+    print( __file__ + "start!!" )
 
     # start and goal position
-    sx = 10.0  # [m]
-    sy = 10.0  # [m]
-    gx = 50.0  # [m]
-    gy = 50.0  # [m]
-    grid_size = 2.0  # [m]
-    robot_radius = 1.0  # [m]
-
+    sx = 10.0   #[m]
+    sy = 50.0   #[m]
+    gx = 95.0   #[m]
+    gy = 50.0   #[m]
+    grid_size = 1.0
+    robot_radius = 1.0
     # set obstacle positions
-    ox, oy = [], []
-    for i in range(-10, 60):
+    ox,oy =[],[]
+
+    for i in range(0,101): 
         ox.append(i)
-        oy.append(-10.0)
-    for i in range(-10, 60):
-        ox.append(60.0)
+        oy.append(0.0)
+
+    for i in range(40,60): 
+        ox.append(20)
         oy.append(i)
-    for i in range(-10, 61):
+    
+    for i in range(0,40): 
+        ox.append(30)
+        oy.append(i)
+
+    for i in range(0,101): 
         ox.append(i)
-        oy.append(60.0)
-    for i in range(-10, 61):
-        ox.append(-10.0)
+        oy.append(100.0)
+
+    for i in range(0,101):
+        ox.append(100.0)
         oy.append(i)
-    for i in range(-10, 40):
-        ox.append(20.0)
+    
+    for i in range(0,101):
+        ox.append(0.0)
         oy.append(i)
-    for i in range(0, 40):
+    
+    for i in range(0,40):
         ox.append(40.0)
-        oy.append(60.0 - i)
+        oy.append(100-i)
+
+    for i in range(0,40):
+        ox.append(55.0)
+        oy.append(70-i)
+
+    for i in range(0,40):
+        ox.append(75.0)
+        oy.append(i)
+
+    for i in range(0,40):
+        ox.append(85.0)
+        oy.append(100 -i)
 
     if show_animation:  # pragma: no cover
-        plt.plot(ox, oy, ".k")
+        plt.plot(ox, oy, "*r")
         plt.plot(sx, sy, "og")
         plt.plot(gx, gy, "xb")
         plt.grid(True)
