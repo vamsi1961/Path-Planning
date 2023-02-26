@@ -1,5 +1,7 @@
+
 import matplotlib.pyplot as plt
 import math
+import time
 
 show_animation = True
 class AStarPlanner:
@@ -46,16 +48,17 @@ class AStarPlanner:
 
             curr_id = min(open_set, key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,open_set[o]))
             current = open_set[curr_id]
+            print(current.cost)
 
-            #  show_graph
+             #show_graph
 
-            if show_animation:
-                plt.plot(self.calc_position(current.x,self.x_min),self.calc_position(current.y,self.y_min),"xc")
-                
-                plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
+            # if show_animation:
+            #     plt.plot(self.calc_position(current.x,self.x_min),self.calc_position(current.y,self.y_min),"xc")
 
-                if len(closed_set.keys()) % 10 ==  0:
-                    plt.pause(0.01)
+            #     plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
+
+            #     if len(closed_set.keys()) % 10 ==  0:
+            #         plt.pause(0.01)
 
             if current.x == goal_node.x and current.y == goal_node.y:
                 print("Find Goal")
@@ -86,7 +89,7 @@ class AStarPlanner:
                 else:
                     if open_set[n_id].cost > node.cost:
                         open_set[n_id] = node 
-
+        
         rx,ry = self.calc_final_path(goal_node,closed_set)
         # returns distance 
 
@@ -98,9 +101,10 @@ class AStarPlanner:
 
 
     def calc_final_path(self,goal_node,closed_set):
-        
+
         rx,ry = [self.calc_position(goal_node.x ,self.x_min)], [self.calc_position(goal_node.y,self.y_min)]
         parent_index = goal_node.parent_index
+        print(goal_node.cost)
         while parent_index != -1:
             n = closed_set[parent_index]
             rx.append(self.calc_position(n.x,self.x_min))
@@ -117,11 +121,15 @@ class AStarPlanner:
 
     @staticmethod
     def calc_heuristic(n1,n2):
-        w = 1.0
-        d = w*math.hypot(n1.x - n2.x , n1.y - n2.y)
 
+        #d = abs(n1.x-n2.x) + abs(n1.y-n2.y)
+        if n2.x >= 20  and n2.x <= 80 and n2.y <= 50:
+            d = max(abs(n1.x-n2.x) ,abs(n1.y-n2.y))*2
+        else:
+            d = max(abs(n1.x-n2.x) ,abs(n1.y-n2.y))
+        # d = max(abs(n1.x - n2.x), abs(n1.y - n2.y)) * math.sqrt(2)
+        #d = w*math.hypot(n1.x - n2.x , n1.y - n2.y)
         return d
-
 
     def verify_node(self,node):
 
@@ -183,7 +191,8 @@ class AStarPlanner:
             [-1,-1,math.sqrt(2)],
             [-1,1,math.sqrt(2)],
             [1,-1,math.sqrt(2)],
-            [1,1,math.sqrt(2)]]
+            [1,1,math.sqrt(2)]
+        ]
 
         return motion
 
@@ -193,25 +202,25 @@ def main():
 
     # start and goal position
     sx = 10.0   #[m]
-    sy = 50.0   #[m]
-    gx = 95.0   #[m]
-    gy = 50.0   #[m]
+    sy = 45.0   #[m]
+    gx = 90.0   #[m]
+    gy = 45.0   #[m]
     grid_size = 1.0
     robot_radius = 1.0
     # set obstacle positions
     ox,oy =[],[]
+    hx,hy = [],[]
+    
+    for i in range(20,81,10):
+        for j in range(0,51,10):
+            print(i,j)
+            hx.append(i)
+            hy.append(j)
+
 
     for i in range(0,101): 
         ox.append(i)
         oy.append(0.0)
-
-    for i in range(40,60): 
-        ox.append(20)
-        oy.append(i)
-    
-    for i in range(0,40): 
-        ox.append(30)
-        oy.append(i)
 
     for i in range(0,101): 
         ox.append(i)
@@ -224,35 +233,28 @@ def main():
     for i in range(0,101):
         ox.append(0.0)
         oy.append(i)
+
+    for i in range(30,70):
+        ox.append(i)
+        oy.append(50)
     
-    for i in range(0,40):
-        ox.append(40.0)
-        oy.append(100-i)
 
-    for i in range(0,40):
-        ox.append(55.0)
-        oy.append(70-i)
-
-    for i in range(0,40):
-        ox.append(75.0)
-        oy.append(i)
-
-    for i in range(0,40):
-        ox.append(85.0)
-        oy.append(100 -i)
-
-    if show_animation:  # pragma: no cover
-        plt.plot(ox, oy, "*r")
-        plt.plot(sx, sy, "og")
-        plt.plot(gx, gy, "xb")
+    if show_animation:
+        plt.plot(ox,oy, ".k")
+        plt.plot(sx,sy, "og")
+        plt.plot(hx,hy, "-c")
+        plt.plot(gx,gy, "xb")
         plt.grid(True)
         plt.axis("equal")
-
+    start = time.time()
     a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
+    end = time.time()
+    print(end - start)
     rx, ry = a_star.planning(sx, sy, gx, gy)
+    
 
     if show_animation:  # pragma: no cover
-        plt.plot(rx, ry, "-r")
+        plt.plot(rx, ry, "r")
         plt.pause(0.001)
         plt.show()
 

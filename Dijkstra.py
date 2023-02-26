@@ -1,7 +1,7 @@
 
 import matplotlib.pyplot as plt
 import math
-
+import time
 show_animation = True
 
 
@@ -73,15 +73,15 @@ class Dijkstra:
 
             #  show_graph
 
-            if show_animation:
-                plt.plot(self.calc_position(current.x,self.min_x),self.calc_position(current.y,self.min_y),"xc")
+            # if show_animation:
+            #     plt.plot(self.calc_position(current.x,self.min_x),self.calc_position(current.y,self.min_y),"xc")
 
-                plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
+            #     plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
 
-                if len(closed_set.keys()) % 10 ==  0:
-                    plt.pause(0.001)
+            #     if len(closed_set.keys()) % 10 ==  0:
+            #         plt.pause(0.001)
 
-            #  if the current node is goal node then stop you found the goal
+            # if the current node is goal node then stop you found the goal
             # As cost is accumulated final cost = cost  
 
             if current.x == goal_node.x and current.y == goal_node.y:
@@ -125,6 +125,8 @@ class Dijkstra:
                     if open_set[n_id].cost >= node.cost:
                         open_set[n_id] = node 
 
+        print(len(closed_set))
+
         # after exploring we calculate final path
         rx,ry = self.calc_final_path(goal_node,closed_set)
 
@@ -143,9 +145,9 @@ class Dijkstra:
         
         # we will travel back wards first we will find position of goal
         rx,ry = [self.calc_position(goal_node.x ,self.min_x)], [self.calc_position(goal_node.y,self.min_y)]
-        
         # find it's parent node 
         parent_index = goal_node.parent_index
+        print(goal_node.cost)
         while parent_index != -1:
 
             # go backwards and append rx,ry
@@ -209,7 +211,7 @@ class Dijkstra:
 
         # initially all points in grid are False 
         self.obstacle_map = [[False for _ in range(self.y_width)] for _ in range(self.x_width)]
-
+        
         # we finally 
         for ix in range(self.x_width):
             x = self.calc_position(ix,self.min_x)
@@ -229,12 +231,13 @@ class Dijkstra:
         #dx,dy,cost
         motion = [
             [1,0,1],
-            [0,1,1],
+            
             [-1,0,1],
             [0,-1,1],
             [-1,-1,math.sqrt(2)],
             [-1,1,math.sqrt(2)],
             [1,-1,math.sqrt(2)],
+            [0,1,1],
             [1,1,math.sqrt(2)]]
 
         return motion
@@ -246,9 +249,9 @@ def main():
     # start and goal position
     sx = 10.0   #[m]
     sy = 50.0   #[m]
-    gx = 95.0   #[m]
+    gx = 90.0   #[m]
     gy = 50.0   #[m]
-    grid_size = 2.0
+    grid_size = 1.0
     robot_radius = 1.0
     # set obstacle positions
     ox,oy =[],[]
@@ -256,14 +259,6 @@ def main():
     for i in range(0,101): 
         ox.append(i)
         oy.append(0.0)
-
-    for i in range(40,60): 
-        ox.append(20)
-        oy.append(i)
-    
-    for i in range(0,40): 
-        ox.append(30)
-        oy.append(i)
 
     for i in range(0,101): 
         ox.append(i)
@@ -276,23 +271,12 @@ def main():
     for i in range(0,101):
         ox.append(0.0)
         oy.append(i)
-    
-    for i in range(0,40):
-        ox.append(40.0)
-        oy.append(100-i)
 
-    for i in range(0,40):
-        ox.append(55.0)
-        oy.append(70-i)
+    for i in range(30,70):
+        ox.append(i)
+        oy.append(50)
 
-    for i in range(0,40):
-        ox.append(75.0)
-        oy.append(i)
-
-    for i in range(0,40):
-        ox.append(85.0)
-        oy.append(100 -i)
-
+ 
     if show_animation:
         plt.plot(ox,oy, ".k")
         plt.plot(sx,sy, "og")
@@ -300,7 +284,9 @@ def main():
         plt.grid(True)
         plt.axis("equal")
 
+
     dijkstra = Dijkstra(ox,oy,grid_size,robot_radius)
+
     rx , ry = dijkstra.planning(sx,sy,gx,gy)
 
     if show_animation:
