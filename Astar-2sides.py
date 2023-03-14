@@ -4,7 +4,6 @@ import math
 
 show_animation = True
 
-
 class Node:
 
     def __init__(self,G=0,H=0,coordinate = None, parent = None):
@@ -26,13 +25,12 @@ def hcost(node_coordinate,goal):
     hcost = dx+dy
     return hcost
     
-
 def gcost(fixed_node , update_node_coordinate):
     dx = abs(fixed_node[0] - update_node_coordinate[0])
     dy = abs(fixed_node[1] - update_node_coordinate[1])
     gc = math.hypot(dx,dy)
 
-
+# generating obstacles and boundaries
 def boundary_and_obstacles(start,goal,top_vertex,bottom_vertex,obs_number):
     lry = list(range(bottom_vertex[1],top_vertex[1]))
     lx = [bottom_vertex[0]] * len(lry)
@@ -58,7 +56,7 @@ def boundary_and_obstacles(start,goal,top_vertex,bottom_vertex,obs_number):
 
     return bound_obs,obstacles
 
-
+# finding neighbour amidst pbstacels and boundaries
 def find_neighbor(node,ob,closed):
     ob_list = ob.tolist()
     neighbor : list = []
@@ -72,7 +70,7 @@ def find_neighbor(node,ob,closed):
     top_nei = [node.cooridnate[0] , node.cooridnate[0] + 1]
     bom_nei = [node.cooridnate[0] , node.cooridnate[0] - 1]
     left_nei = [node.cooridnate[0]-1 , node.cooridnate[0] ]
-    right_nei = [node.cooridnate[0] +1 , node.cooridnate[0] ]
+    right_nei = [node.cooridnate[0] +1 , node.cooridnate[0]]
 
     lt_nei = [node.cooridnate[0]-1 , node.cooridnate[0] + 1]
     rt_nei = [node.cooridnate[0]+1 , node.cooridnate[0] + 1]
@@ -94,10 +92,10 @@ def find_neighbor(node,ob,closed):
     neighbor = [x for x in neighbor if x not in closed]
     return neighbor
 
-
 def find_node_index(coordinate,node_list):
     n = [node for node in node_list if node.coordinate == coordinate]
     return n
+
 
 def find_path(open_list,closed_list,goal,onstacle):
     pass
@@ -105,15 +103,13 @@ def find_path(open_list,closed_list,goal,onstacle):
 def node_to_coordinates(node_list):
     coordinate_list = [node.coordinate for node in node_list ]
     return coordinate_list
- 
+
+
 def check_node_coincide(closed_ls1,closed_ls2):
     n1 = node_to_coordinates(closed_ls1)
     n2 = node_to_coordinates(closed_ls2)
-
     intersect_ls = [node for node in n1 if node in n2]
-
     return intersect_ls
-
 
 # return surroundings, obstacles arround node and draw the border line 
 def find_surrounding(coordinate,obstacle):
@@ -127,25 +123,31 @@ def find_surrounding(coordinate,obstacle):
     return boundary
 
 def get_border_line(node_closed_ls,obstacle):
-    pass
+    border: list =[]
+    coordinate_closed_ls = node_to_coordinates(node_closed_ls)
 
+    for coordinate in coordinate_closed_ls:
+        temp = find_surrounding(coordinate,obstacle)
+        border + border + temp
+    
+    border_ary = np.array(border)
+    return border_ary
+    
 
 def get_path(org_list,goal_list,coordinate):
     pass
 
+
+
+
+
 def random_coordinate(bottom_vertex,top_vertex):
     coordinate = [np.random.randint(bottom_vertex[0] +1 , top_vertex[0]), np.random.randint(bottom_vertex[1] +1 , top_vertex[1])]
-
     return coordinate
 
 def draw(close_origin,close_goal,start,end,bound):
     # plot the map
-    if not close_goal.tolist():  # ensure the close_goal not empty
-        # in case of the obstacle number is really large (>4500), the
-        # origin is very likely blocked at the first search, and then
-        # the program is over and the searching from goal to origin
-        # will not start, which remain the closed_list for goal == []
-        # in order to plot the map, add the end coordinate to array
+    if not close_goal.tolist():
         close_goal = np.array([end])
     plt.cla()
     plt.gcf().set_size_inches(11, 9, forward=True)
@@ -161,8 +163,6 @@ def draw(close_origin,close_goal,start,end,bound):
 def draw_control(org_closed,goal_closed,flag,start,end,bound,obstacle):
     pass
 
-
-# 
 def searching_control(start,end,bound,obstacle):
     
     origin = Node(coordinate = start , H = hcost(start,end))
@@ -181,7 +181,18 @@ def searching_control(start,end,bound,obstacle):
     path = None
 
     while True:
-        origin_open , origin_close = 
+        origin_open , origin_close = find_path(origin_open , origin_close , target_goal , bound)
+
+        if not origin_open:
+            flag = 1
+            draw_control(origin_close,goal_close,flag,start , end,bound,obstacle)
+
+            break
+
+        target_origin = 
+
+
+
 
 
 
