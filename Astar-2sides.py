@@ -183,9 +183,6 @@ def searching_control(start,end,bound,obstacle):
     while True:
         origin_open , origin_close = 
 
-    
-
-
 
 
 def main(obstacle_number = 1500):
