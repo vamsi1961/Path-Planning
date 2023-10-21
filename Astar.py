@@ -1,263 +1,364 @@
-
+import numpy as np
 import matplotlib.pyplot as plt
 import math
-import time
 
 show_animation = True
-class AStarPlanner:
-
-    def __init__(self, ox, oy, resolution, robot_radius):
-
-        self.x_min = 0
-        self.y_min = 0
-        self.x_max = 0
-        self.y_max = 0
-        self.x_width = 0
-        self.y_width = 0
-        self.obstacle_map = 0
-
-        self.resolution = resolution
-        self.robot_radius = robot_radius
-        self.calc_obstacle_map(ox, oy)
-        self.motion = self.get_motion_model()
-
-    class Node:
-        def __init__(self, x, y, cost, parent_index):
-            self.x = x  # index of grid
-            self.y = y  # index of grid
-            self.cost = cost
-            self.parent_index = parent_index  # index of previous Node
-
-        def __str__(self):
-            return str(self.x) + "," + str(self.y) + "," + str(self.cost) + "," + str(self.parent_index)
 
 
-    def planning(self,sx,sy,gx,gy):
-        
-        start_node = self.Node(self.calc_xy_index(sx, self.x_min),self.calc_xy_index(sy, self.y_min), 0.0, -1)
-        goal_node = self.Node(self.calc_xy_index(gx, self.x_min),self.calc_xy_index(gy, self.y_min), 0.0, -1)
+class Node:
+    """node with properties of g, h, coordinate and parent node"""
 
-        open_set, closed_set = dict(), dict()
-        open_set[self.calc_index(start_node)] = start_node
-        print(str(start_node))
+    def __init__(self, G=0, H=0, coordinate=None, parent=None):
+        self.G = G
+        self.H = H
+        self.F = G + H
+        self.parent = parent
+        self.coordinate = coordinate
 
-        while True:
-            if len(open_set) == 0:
-                print("Open set is empty..")
-                break
-
-            curr_id = min(open_set, key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,open_set[o]))
-            current = open_set[curr_id]
-            print(current.cost)
-
-             #show_graph
-
-            # if show_animation:
-            #     plt.plot(self.calc_position(current.x,self.x_min),self.calc_position(current.y,self.y_min),"xc")
-
-            #     plt.gcf().canvas.mpl_connect('key_release_event', lambda event:[exit(0) if event.key == 'escape' else None])
-
-            #     if len(closed_set.keys()) % 10 ==  0:
-            #         plt.pause(0.01)
-
-            if current.x == goal_node.x and current.y == goal_node.y:
-                print("Find Goal")
-                goal_node.parent_index = current.parent_index
-                goal_node.cost = current.cost
-                break
-
-            del open_set[curr_id]
-
-            closed_set[curr_id] = current
-
-            for i, _ in enumerate(self.motion):
-                node = self.Node(current.x + self.motion[i][0],
-                                 current.y + self.motion[i][1],
-                                 current.cost + self.motion[i][2], curr_id)
-
-                n_id = self.calc_index(node)
-
-                if n_id in closed_set:
-                    continue
-
-                if not self.verify_node(node):
-                    continue
-
-                if n_id not in open_set:
-                    open_set[n_id] = node
-
-                else:
-                    if open_set[n_id].cost > node.cost:
-                        open_set[n_id] = node 
-        
-        rx,ry = self.calc_final_path(goal_node,closed_set)
-        # returns distance 
-
-        return rx,ry 
-
-    def calc_position(self,index,minp):
-        pos = index*self.resolution + minp
-        return pos
+    def reset_f(self):
+        self.F = self.G + self.H
 
 
-    def calc_final_path(self,goal_node,closed_set):
-
-        rx,ry = [self.calc_position(goal_node.x ,self.x_min)], [self.calc_position(goal_node.y,self.y_min)]
-        parent_index = goal_node.parent_index
-        print(goal_node.cost)
-        while parent_index != -1:
-            n = closed_set[parent_index]
-            rx.append(self.calc_position(n.x,self.x_min))
-            ry.append(self.calc_position(n.y,self.y_min))
-            parent_index = n.parent_index
-
-        return rx,ry
-
-    def calc_index(self, node):
-        return (node.y - self.y_min) * self.x_width + (node.x - self.x_min)
-    
-    def calc_xy_index(self,position,minp):
-        return round((position - minp)/self.resolution)
-
-    @staticmethod
-    def calc_heuristic(n1,n2):
-
-        #d = abs(n1.x-n2.x) + abs(n1.y-n2.y)
-        if n2.x >= 20  and n2.x <= 80 and n2.y <= 50:
-            d = max(abs(n1.x-n2.x) ,abs(n1.y-n2.y))*2
-        else:
-            d = max(abs(n1.x-n2.x) ,abs(n1.y-n2.y))
-        # d = max(abs(n1.x - n2.x), abs(n1.y - n2.y)) * math.sqrt(2)
-        #d = w*math.hypot(n1.x - n2.x , n1.y - n2.y)
-        return d
-
-    def verify_node(self,node):
-
-        px = self.calc_position(node.x,self.x_min)
-        py = self.calc_position(node.y,self.y_min)
-
-        if px < self.x_min:
-            return False
-
-        if py < self.y_min:
-            return False
-
-        if px >= self.x_max:
-            return False
-
-        if py >= self.y_max:
-            return False
-
-        if self.obstacle_map[node.x][node.y]:
-            return False
-
-        return True
+def hcost(node_coordinate, goal):
+    dx = abs(node_coordinate[0] - goal[0])
+    dy = abs(node_coordinate[1] - goal[1])
+    hcost = dx + dy
+    return hcost
 
 
-    def calc_obstacle_map(self,ox,oy):
-        
-        self.x_min = round(min(ox))
-        self.x_max = round(max(ox))
-        self.y_min = round(min(oy))
-        self.y_max = round(max(oy))
-        print("x_min:", self.x_min)
-        print("y_min:", self.y_min)
-        print("x_max:", self.x_max)
-        print("y_max:", self.y_max)
-
-        self.x_width = round((self.x_max - self.x_min) / self.resolution)
-        self.y_width = round((self.y_max - self.y_min) / self.resolution)
-
-        self.obstacle_map = [[False for _ in range(self.y_width)] for _ in range(self.x_width)]
-
-        for ix in range(self.x_width):
-            x = self.calc_position(ix,self.x_min)
-            for iy in range(self.y_width):
-                y = self.calc_position(iy,self.y_min)
-                for iox,ioy in zip(ox,oy):
-                    d = math.hypot(iox-x,ioy -y)
-                    if d <= self.robot_radius:
-                        self.obstacle_map[ix][iy] = True
-                        break
-
-    @staticmethod
-    def get_motion_model():
-        #dx,dy,cost
-        motion = [
-            [1,0,1],
-            [0,1,1],
-            [-1,0,1],
-            [0,-1,1],
-            [-1,-1,math.sqrt(2)],
-            [-1,1,math.sqrt(2)],
-            [1,-1,math.sqrt(2)],
-            [1,1,math.sqrt(2)]
-        ]
-
-        return motion
-
-    
-def main():
-    print( __file__ + "start!!" )
-
-    # start and goal position
-    sx = 10.0   #[m]
-    sy = 45.0   #[m]
-    gx = 90.0   #[m]
-    gy = 45.0   #[m]
-    grid_size = 1.0
-    robot_radius = 1.0
-    # set obstacle positions
-    ox,oy =[],[]
-    hx,hy = [],[]
-    
-    for i in range(20,81,10):
-        for j in range(0,51,10):
-            print(i,j)
-            hx.append(i)
-            hy.append(j)
+def gcost(fixed_node, update_node_coordinate):
+    dx = abs(fixed_node.coordinate[0] - update_node_coordinate[0])
+    dy = abs(fixed_node.coordinate[1] - update_node_coordinate[1])
+    gc = math.hypot(dx, dy)  # gc = move from fixed_node to update_node
+    gcost = fixed_node.G + gc  # gcost = move from start point to update_node
+    return gcost
 
 
-    for i in range(0,101): 
-        ox.append(i)
-        oy.append(0.0)
+def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, obs_number):
+    """
+    :param start: start coordinate
+    :param goal: goal coordinate
+    :param top_vertex: top right vertex coordinate of boundary
+    :param bottom_vertex: bottom left vertex coordinate of boundary
+    :param obs_number: number of obstacles generated in the map
+    :return: boundary_obstacle array, obstacle list
+    """
+    # below can be merged into a rectangle boundary
+    ay = list(range(bottom_vertex[1], top_vertex[1]))
+    ax = [bottom_vertex[0]] * len(ay)
+    print(len(ax))
+    cy = ay
+    cx = [top_vertex[0]] * len(cy)
+    bx = list(range(bottom_vertex[0] + 1, top_vertex[0]))
+    by = [bottom_vertex[1]] * len(bx)
+    dx = [bottom_vertex[0]] + bx + [top_vertex[0]]
+    dy = [top_vertex[1]] * len(dx)
+    print(len(ax),len(bx),len(cx),len(dx))
 
-    for i in range(0,101): 
-        ox.append(i)
-        oy.append(100.0)
+    # generate random obstacles
+    ob_x = np.random.randint(bottom_vertex[0] + 1,
+                             top_vertex[0], obs_number).tolist()
+    ob_y = np.random.randint(bottom_vertex[1] + 1,
+                             top_vertex[1], obs_number).tolist()
+    # x y coordinate in certain order for boundary
+    x = ax + bx + cx + dx
+    y = ay + by + cy + dy
+    obstacle = np.vstack((ob_x, ob_y)).T.tolist()
+    # remove start and goal coordinate in obstacle list
+    obstacle = [coor for coor in obstacle if coor != start and coor != goal]
+    obs_array = np.array(obstacle)
+    bound = np.vstack((x, y)).T
+    bound_obs = np.vstack((bound, obs_array))
+    return bound_obs, obstacle
 
-    for i in range(0,101):
-        ox.append(100.0)
-        oy.append(i)
-    
-    for i in range(0,101):
-        ox.append(0.0)
-        oy.append(i)
 
-    for i in range(30,70):
-        ox.append(i)
-        oy.append(50)
-    
+def find_neighbor(node, ob, closed):
+    # generate neighbors in certain condition
+    ob_list = ob.tolist()
+    neighbor: list = []
+    for x in range(node.coordinate[0] - 1, node.coordinate[0] + 2):
+        for y in range(node.coordinate[1] - 1, node.coordinate[1] + 2):
+            if [x, y] not in ob_list:
+                # find all possible neighbor nodes
+                neighbor.append([x, y])
+    # remove node violate the motion rule
+    # 1. remove node.coordinate itself
+    neighbor.remove(node.coordinate)
+    # 2. remove neighbor nodes who cross through two diagonal
+    # positioned obstacles since there is no enough space for
+    # robot to go through two diagonal positioned obstacles
 
-    if show_animation:
-        plt.plot(ox,oy, ".k")
-        plt.plot(sx,sy, "og")
-        plt.plot(hx,hy, "-c")
-        plt.plot(gx,gy, "xb")
-        plt.grid(True)
-        plt.axis("equal")
-    start = time.time()
-    a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
-    end = time.time()
-    print(end - start)
-    rx, ry = a_star.planning(sx, sy, gx, gy)
-    
+    # top bottom left right neighbors of node
+    top_nei = [node.coordinate[0], node.coordinate[1] + 1]
+    bottom_nei = [node.coordinate[0], node.coordinate[1] - 1]
+    left_nei = [node.coordinate[0] - 1, node.coordinate[1]]
+    right_nei = [node.coordinate[0] + 1, node.coordinate[1]]
+    # neighbors in four vertex
+    lt_nei = [node.coordinate[0] - 1, node.coordinate[1] + 1]
+    rt_nei = [node.coordinate[0] + 1, node.coordinate[1] + 1]
+    lb_nei = [node.coordinate[0] - 1, node.coordinate[1] - 1]
+    rb_nei = [node.coordinate[0] + 1, node.coordinate[1] - 1]
 
-    if show_animation:  # pragma: no cover
-        plt.plot(rx, ry, "r")
-        plt.pause(0.001)
-        plt.show()
+    # remove the unnecessary neighbors
+    if top_nei and left_nei in ob_list and lt_nei in neighbor:
+        neighbor.remove(lt_nei)
+    if top_nei and right_nei in ob_list and rt_nei in neighbor:
+        neighbor.remove(rt_nei)
+    if bottom_nei and left_nei in ob_list and lb_nei in neighbor:
+        neighbor.remove(lb_nei)
+    if bottom_nei and right_nei in ob_list and rb_nei in neighbor:
+        neighbor.remove(rb_nei)
+    neighbor = [x for x in neighbor if x not in closed]
+    return neighbor
+
+
+def find_node_index(coordinate, node_list):
+    # find node index in the node list via its coordinate
+    ind = 0
+    for node in node_list:
+        if node.coordinate == coordinate:
+            target_node = node
+            ind = node_list.index(target_node)
+            break
+    return ind
+
+
+def find_path(open_list, closed_list, goal, obstacle):
+    # searching for the path, update open and closed list
+    # obstacle = obstacle and boundary
+    flag = len(open_list)
+    for i in range(flag):
+        node = open_list[0]
+        open_coordinate_list = [node.coordinate for node in open_list]
+        closed_coordinate_list = [node.coordinate for node in closed_list]
+        temp = find_neighbor(node, obstacle, closed_coordinate_list)
+        for element in temp:
+            if element in closed_list:
+                continue
+            elif element in open_coordinate_list:
+                # if node in open list, update g value
+                ind = open_coordinate_list.index(element)
+                new_g = gcost(node, element)
+                if new_g <= open_list[ind].G:
+                    open_list[ind].G = new_g
+                    open_list[ind].reset_f()
+                    open_list[ind].parent = node
+            else:  # new coordinate, create corresponding node
+                ele_node = Node(coordinate=element, parent=node,
+                                G=gcost(node, element), H=hcost(element, goal))
+                open_list.append(ele_node)
+        open_list.remove(node)
+        closed_list.append(node)
+        open_list.sort(key=lambda x: x.F)
+    return open_list, closed_list
+
+
+def node_to_coordinate(node_list):
+    # convert node list into coordinate list and array
+    coordinate_list = [node.coordinate for node in node_list]
+    return coordinate_list
+
+
+def check_node_coincide(close_ls1, closed_ls2):
+    """
+    :param close_ls1: node closed list for searching from start
+    :param closed_ls2: node closed list for searching from end
+    :return: intersect node list for above two
+    """
+    # check if node in close_ls1 intersect with node in closed_ls2
+    cl1 = node_to_coordinate(close_ls1)
+    cl2 = node_to_coordinate(closed_ls2)
+    intersect_ls = [node for node in cl1 if node in cl2]
+    return intersect_ls
+
+
+def find_surrounding(coordinate, obstacle):
+    # find obstacles around node, help to draw the borderline
+    boundary: list = []
+    for x in range(coordinate[0] - 1, coordinate[0] + 2):
+        for y in range(coordinate[1] - 1, coordinate[1] + 2):
+            if [x, y] in obstacle:
+                boundary.append([x, y])
+    return boundary
+
+
+def get_border_line(node_closed_ls, obstacle):
+    # if no path, find border line which confine goal or robot
+    border: list = []
+    coordinate_closed_ls = node_to_coordinate(node_closed_ls)
+    for coordinate in coordinate_closed_ls:
+        temp = find_surrounding(coordinate, obstacle)
+        border = border + temp
+    border_ary = np.array(border)
+    return border_ary
+
+
+def get_path(org_list, goal_list, coordinate):
+    # get path from start to end
+    path_org: list = []
+    path_goal: list = []
+    ind = find_node_index(coordinate, org_list)
+    node = org_list[ind]
+    while node != org_list[0]:
+        path_org.append(node.coordinate)
+        node = node.parent
+    path_org.append(org_list[0].coordinate)
+    ind = find_node_index(coordinate, goal_list)
+    node = goal_list[ind]
+    while node != goal_list[0]:
+        path_goal.append(node.coordinate)
+        node = node.parent
+    path_goal.append(goal_list[0].coordinate)
+    path_org.reverse()
+    path = path_org + path_goal
+    path = np.array(path)
+    return path
+
+
+def random_coordinate(bottom_vertex, top_vertex):
+    # generate random coordinates inside maze
+    coordinate = [np.random.randint(bottom_vertex[0] + 1, top_vertex[0]),
+                  np.random.randint(bottom_vertex[1] + 1, top_vertex[1])]
+    return coordinate
+
+
+def draw(close_origin, close_goal, start, end, bound):
+    # plot the map
+    if not close_goal.tolist():  # ensure the close_goal not empty
+        # in case of the obstacle number is really large (>4500), the
+        # origin is very likely blocked at the first search, and then
+        # the program is over and the searching from goal to origin
+        # will not start, which remain the closed_list for goal == []
+        # in order to plot the map, add the end coordinate to array
+        close_goal = np.array([end])
+    plt.cla()
+    plt.gcf().set_size_inches(11, 9, forward=True)
+    plt.axis('equal')
+    plt.plot(close_origin[:, 0], close_origin[:, 1], 'oy')
+    plt.plot(close_goal[:, 0], close_goal[:, 1], 'og')
+    plt.plot(bound[:, 0], bound[:, 1], 'sk')
+    plt.plot(end[0], end[1], '*b', label='Goal')
+    plt.plot(start[0], start[1], '^b', label='Origin')
+    plt.legend()
+    plt.pause(0.0001)
+
+
+def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle):
+    """
+    control the plot process, evaluate if the searching finished
+    flag == 0 : draw the searching process and plot path
+    flag == 1 or 2 : start or end is blocked, draw the border line
+    """
+    stop_loop = 0  # stop sign for the searching
+    org_closed_ls = node_to_coordinate(org_closed)
+    org_array = np.array(org_closed_ls)
+    goal_closed_ls = node_to_coordinate(goal_closed)
+    goal_array = np.array(goal_closed_ls)
+    path = None
+    if show_animation:  # draw the searching process
+        draw(org_array, goal_array, start, end, bound)
+    if flag == 0:
+        node_intersect = check_node_coincide(org_closed, goal_closed)
+        if node_intersect:  # a path is find
+            path = get_path(org_closed, goal_closed, node_intersect[0])
+            stop_loop = 1
+            print('Path found!')
+            if show_animation:  # draw the path
+                plt.plot(path[:, 0], path[:, 1], '-r')
+                plt.title('A Star', size=20, loc='center')
+                plt.pause(0.01)
+                plt.show()
+    elif flag == 1:  # start point blocked first
+        stop_loop = 1
+        print('There is no path to the goal! Start point is blocked!')
+    elif flag == 2:  # end point blocked first
+        stop_loop = 1
+        print('There is no path to the goal! End point is blocked!')
+    if show_animation:  # blocked case, draw the border line
+        info = 'There is no path to the goal!' \
+               ' Robot&Goal are split by border' \
+               ' shown in red \'x\'!'
+        if flag == 1:
+            border = get_border_line(org_closed, obstacle)
+            plt.plot(border[:, 0], border[:, 1], 'xr')
+            plt.title(info, size=14, loc='center')
+            plt.pause(0.01)
+            plt.show()
+        elif flag == 2:
+            border = get_border_line(goal_closed, obstacle)
+            plt.plot(border[:, 0], border[:, 1], 'xr')
+            plt.title(info, size=14, loc='center')
+            plt.pause(0.01)
+            plt.show()
+    return stop_loop, path
+
+
+def searching_control(start, end, bound, obstacle):
+    """manage the searching process, start searching from two side"""
+    # initial origin node and end node
+    origin = Node(coordinate=start, H=hcost(start, end))
+    goal = Node(coordinate=end, H=hcost(end, start))
+    # list for searching from origin to goal
+    origin_open: list = [origin]
+    origin_close: list = []
+    # list for searching from goal to origin
+    goal_open = [goal]
+    goal_close: list = []
+    # initial target
+    target_goal = end
+    # flag = 0 (not blocked) 1 (start point blocked) 2 (end point blocked)
+    flag = 0  # init flag
+    path = None
+    while True:
+        # searching from start to end
+        origin_open, origin_close = \
+            find_path(origin_open, origin_close, target_goal, bound)
+        if not origin_open:  # no path condition
+            flag = 1  # origin node is blocked
+            draw_control(origin_close, goal_close, flag, start, end, bound,
+                         obstacle)
+            break
+        # update target for searching from end to start
+        target_origin = min(origin_open, key=lambda x: x.F).coordinate
+
+        # searching from end to start
+        goal_open, goal_close = \
+            find_path(goal_open, goal_close, target_origin, bound)
+        if not goal_open:  # no path condition
+            flag = 2  # goal is blocked
+            draw_control(origin_close, goal_close, flag, start, end, bound,
+                         obstacle)
+            break
+        # update target for searching from start to end
+        target_goal = min(goal_open, key=lambda x: x.F).coordinate
+
+        # continue searching, draw the process
+        stop_sign, path = draw_control(origin_close, goal_close, flag, start,
+                                       end, bound, obstacle)
+        if stop_sign:
+            break
+    return path
+
+
+def main(obstacle_number=1500):
+    print(__file__ + ' start!')
+
+    top_vertex = [60, 90]  # top right vertex of boundary
+    bottom_vertex = [10, 0]  # bottom left vertex of boundary
+
+    # generate start and goal point randomly
+    start = random_coordinate(bottom_vertex, top_vertex)
+    end = random_coordinate(bottom_vertex, top_vertex)
+
+    # generate boundary and obstacles
+    bound, obstacle = boundary_and_obstacles(start, end, top_vertex,
+                                             bottom_vertex,
+                                             obstacle_number)
+
+    path = searching_control(start, end, bound, obstacle)
+    if not show_animation:
+        print(path)
 
 
 if __name__ == '__main__':
-    main()
+    main(obstacle_number=1500)
