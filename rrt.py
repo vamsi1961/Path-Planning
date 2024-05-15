@@ -5,9 +5,6 @@ import plotting
 import env
 import time
 
-
-
-
 class Node:
     def __init__(self,n):
         self.x = n[0]
